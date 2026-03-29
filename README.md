@@ -34,7 +34,7 @@
 ### 1. 套件安裝
 請使用 `uv` 或是您偏好的套件管理器進行安裝：
 ```bash
-uv pip install fastapi uvicorn pydantic langchain-openai
+uv sync
 ```
 
 ### 2. 環境變數設定
