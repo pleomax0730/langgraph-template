@@ -116,3 +116,30 @@ curl -N -s -X POST http://127.0.0.1:8000/chat/stream \
      }'
 ```
 以此格式發送，伺服器即可完美解析上游之變數狀態 (`102.0`) ，接續回答客戶需求。
+
+---
+
+### 範例 C：非串流同步請求 (JSON Synchronous Execution)
+
+若不需要打字機效果，可使用 `/chat/invoke` 端點直接獲取最終結果：
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/chat/invoke \
+     -H "Content-Type: application/json" \
+     -d '{
+           "user_input": "120元打85折是多少？",
+           "chat_mode": "plan"
+         }'
+```
+
+**預期回傳：**
+```json
+{
+  "response": "120元打85折後的價格是 102元。",
+  "usage": {
+    "input_tokens": 120,
+    "output_tokens": 45
+  }
+}
+```
+
