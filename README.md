@@ -2,7 +2,7 @@
 
 這是一個企業級支援非同步 LangGraph 串流基礎設施。本專案透過 `FastAPI` 與 `Server-Sent Events (SSE)` 建構出高效擴展的 API 層，並針對大型專案嚴格貫徹了 Clean Architecture (六角形架構) 規範。
 
-## 🎯 架構核心理念
+## 架構核心理念
 
 * **原生非同步高併發 (Native Async I/O)**: 在底層全面採用原生 `asyncio` 與 `FastAPI` Generator，取代傳統阻塞式的執行緒佇列 (Thread Blocking Queues)，確保伺服器單機承載高併發請求。同步且易發生 I/O 阻塞的舊型工具，均會受到內部 `asyncio.to_thread` 執行緒池保護，防止主動線程雪崩。
 * **多型語言模型配接器 (Polymorphic LLM Adapter)**: 導入模型工廠與依賴注入 (DI) 設計，使得替換底層 `OpenAI` 與 `Google Gemini` 服務不需動及核心業務邏輯。
@@ -11,7 +11,7 @@
 
 ---
 
-## 📂 目錄結構與模組職責
+## 目錄結構與模組職責
 
 整個 `chat` 模組透過「關注點分離」嚴格切分：
 
@@ -29,7 +29,7 @@
 
 ---
 
-## 🛠️ 環境配置與服務啟動
+## 環境配置與服務啟動
 
 ### 1. 套件安裝
 請使用 `uv` 或是您偏好的套件管理器進行安裝：
@@ -58,7 +58,7 @@ uv run uvicorn main:app --reload
 
 ---
 
-## 📡 API 介接文件與整合範例
+## API 介接文件與整合範例
 
 ### 範例 A：無狀態單次請求 (Single Turn Execution)
 針對預設的獨立單機測試，可直接以命令列測試 SSE (Server-Sent Events) 輸出端點：
