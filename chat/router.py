@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
-from .dependencies import get_stream_use_case
+from .dependencies import get_invoke_use_case, get_stream_use_case
 from .port import ChatCommandRequest
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -29,3 +29,16 @@ async def chat_stream_endpoint(
             yield f"data: {json.dumps(event_dict, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(sse_event_generator(), media_type="text/event-stream")
+
+
+@router.post("/invoke")
+async def chat_invoke_endpoint(
+    request: ChatCommandRequest,
+    invoke_service: Callable[..., Any] = Depends(get_invoke_use_case),
+):
+    result = await invoke_service(
+        user_input=request.user_input,
+        chat_mode=request.chat_mode,
+        chat_history_dicts=request.chat_history,
+    )
+    return result

@@ -67,10 +67,9 @@ class StreamEventHandler:
         yield resp
 
 
-async def stream_execute(
-    user_input: str, chat_mode: str, chat_history_dicts: list | None = None
-) -> AsyncGenerator[dict[str, Any]]:
-    app = GLOBAL_APP
+def _build_input_messages(
+    user_input: str, chat_history_dicts: list | None = None
+) -> list[AnyMessage]:
     input_messages: list[AnyMessage] = [SystemMessage(content=SYSTEM_PROMPT)]
 
     if chat_history_dicts:
@@ -98,6 +97,14 @@ async def stream_execute(
     if user_input:
         input_messages.append(HumanMessage(content=user_input))
 
+    return input_messages
+
+
+async def stream_execute(
+    user_input: str, chat_mode: str, chat_history_dicts: list | None = None
+) -> AsyncGenerator[dict[str, Any], None]:
+    app = GLOBAL_APP
+    input_messages = _build_input_messages(user_input, chat_history_dicts)
     handler = StreamEventHandler()
     dispatch_map = {
         "messages": handler.handle_messages,
@@ -118,3 +125,24 @@ async def stream_execute(
     except Exception as exc:
         logger.exception("Stream execution failed")
         yield {"event": "error", "error": str(exc)}
+
+
+async def invoke_execute(
+    user_input: str, chat_mode: str, chat_history_dicts: list | None = None
+) -> dict[str, Any]:
+    app = GLOBAL_APP
+    input_messages = _build_input_messages(user_input, chat_history_dicts)
+
+    try:
+        final_state = await app.ainvoke(
+            ChatWorkflowState(messages=input_messages),
+            context=ChatContext(chat_mode=chat_mode),
+            version=settings.STREAM_VERSION,
+        )
+        return {
+            "response": final_state.get("final_response"),
+            "usage": final_state.get("final_usage", {}),
+        }
+    except Exception as exc:
+        logger.exception("Invoke execution failed")
+        return {"error": str(exc)}
