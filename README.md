@@ -41,13 +41,20 @@ uv sync
 請於專案根目錄建立 `.env` 檔案，支援以下標準設定檔：
 ```env
 OPENAI_API_KEY="sk-..."
-GOOGLE_API_KEY="AIza..." # Vertex AI 整合需額外修改 Adapter API 初始化
+GOOGLE_API_KEY="AIza..." # 使用 Gemini Developer API 時可設定
+GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/service-account.json"
+GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
+GOOGLE_CLOUD_LOCATION="global"
 
 # 選擇服務供應商 (openai / google)
 MODEL_PROVIDER="openai" 
 
+# openai 建議 "gpt-5.4-mini"
+# google Vertex AI 建議 "gemini-3-flash-preview" 或 "gemini-2.5-flash"
 MODEL_NAME="gpt-5.4-mini" 
 ```
+
+`google` provider 目前已驗證可直接透過 `ChatGoogleGenerativeAI` 連接 Vertex AI。若使用 service account，請設定 `GOOGLE_APPLICATION_CREDENTIALS`，系統會自動以 `cloud-platform` scope 載入憑證，並在 `GOOGLE_CLOUD_PROJECT` 未設定時從憑證內推導 project id。
 
 ### 3. 本機服務啟動
 透過 `uvicorn` 啟動：
@@ -117,6 +124,8 @@ curl -N -s -X POST http://127.0.0.1:8000/chat/stream \
 ```
 以此格式發送，伺服器即可完美解析上游之變數狀態 (`102.0`) ，接續回答客戶需求。
 
+若對話歷史中某一個 assistant turn 產生了多個 `tool_calls`，後續送回的 `role: "tool"` 訊息數量必須一一對應；否則 Vertex AI 會回傳 `INVALID_ARGUMENT`。
+
 ---
 
 ### 範例 C：非串流同步請求 (JSON Synchronous Execution)
@@ -142,4 +151,3 @@ curl -s -X POST http://127.0.0.1:8000/chat/invoke \
   }
 }
 ```
-
