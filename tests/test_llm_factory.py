@@ -2,13 +2,18 @@ import os
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import sentinel
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("MODEL_PROVIDER", "openai")
 
+from unittest.mock import patch
+
 from chat.adapters.llm_factory import (  # noqa: E402
     _GOOGLE_CLOUD_PLATFORM_SCOPE,
+    _build_google_llm,
     _build_google_llm_kwargs,
+    _build_openai_llm,
     _read_google_vertexai_settings,
     build_llm,
 )
@@ -40,7 +45,6 @@ class LlmFactoryTests(unittest.TestCase):
             return SimpleNamespace(project_id="credential-project")
 
         kwargs = _build_google_llm_kwargs(
-            "gemini-2.5-flash",
             env={"GOOGLE_APPLICATION_CREDENTIALS": "/tmp/service-account.json"},
             credentials_loader=fake_loader,
         )
@@ -58,7 +62,6 @@ class LlmFactoryTests(unittest.TestCase):
             return SimpleNamespace(project_id="credential-project")
 
         kwargs = _build_google_llm_kwargs(
-            "gemini-3-flash-preview",
             env={
                 "GOOGLE_APPLICATION_CREDENTIALS": "/tmp/service-account.json",
                 "GOOGLE_CLOUD_PROJECT": "explicit-project",
@@ -69,6 +72,43 @@ class LlmFactoryTests(unittest.TestCase):
 
         self.assertEqual(kwargs["project"], "explicit-project")
         self.assertEqual(kwargs["location"], "asia-east1")
+
+    def test_build_google_llm_uses_init_chat_model(self) -> None:
+        with (
+            patch(
+                "chat.adapters.llm_factory._build_google_llm_kwargs",
+                return_value={"vertexai": True, "streaming": True},
+            ) as google_kwargs_mock,
+            patch(
+                "chat.adapters.llm_factory.init_chat_model",
+                return_value=sentinel.google_llm,
+            ) as init_chat_model_mock,
+        ):
+            result = _build_google_llm("gemini-3-flash-preview")
+
+        google_kwargs_mock.assert_called_once_with()
+        init_chat_model_mock.assert_called_once_with(
+            "google_genai:gemini-3-flash-preview",
+            vertexai=True,
+            streaming=True,
+        )
+        self.assertIs(result, sentinel.google_llm)
+
+    def test_build_openai_llm_uses_init_chat_model(self) -> None:
+        with patch(
+            "chat.adapters.llm_factory.init_chat_model",
+            return_value=sentinel.openai_llm,
+        ) as init_chat_model_mock:
+            result = _build_openai_llm("gpt-5.4-mini")
+
+        init_chat_model_mock.assert_called_once_with(
+            "openai:gpt-5.4-mini",
+            use_responses_api=True,
+            output_version="responses/v1",
+            reasoning={"effort": "high", "summary": "detailed"},
+            streaming=True,
+        )
+        self.assertIs(result, sentinel.openai_llm)
 
     def test_build_llm_rejects_unknown_provider(self) -> None:
         with self.assertRaisesRegex(ValueError, "Unsupported model provider"):

@@ -9,3 +9,6 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# Local credentials
+younilab-kmind-hub-dev-99186e555cec.json

@@ -63,6 +63,53 @@ uv run uvicorn main:app --reload
 ```
 預設服務端點位址為 `http://127.0.0.1:8000`。
 
+### Gemini Runtime Probe
+
+若要驗證 `init_chat_model` 在執行期切換 Gemini thinking 參數，可使用：
+
+```bash
+uv run python scripts/probe_gemini_runtime_config.py \
+  --model gemini-3-flash-preview \
+  --thinking-level high \
+  --include-thoughts
+```
+
+若要測試 Gemini 2.5 的 `thinking_budget`：
+
+```bash
+uv run python scripts/probe_gemini_runtime_config.py \
+  --model gemini-2.5-flash \
+  --thinking-budget 512
+```
+
+此 probe 使用 `config["configurable"]` 於 runtime 覆寫。Gemini 3 範例：
+
+```json
+{
+  "configurable": {
+    "gemini_model": "google_genai:gemini-3-flash-preview",
+    "gemini_thinking_level": "high",
+    "gemini_temperature": 1.0,
+    "gemini_include_thoughts": true
+  }
+}
+```
+
+Gemini 2.5 範例：
+
+```json
+{
+  "configurable": {
+    "gemini_model": "google_genai:gemini-2.5-flash",
+    "gemini_thinking_budget": 512,
+    "gemini_temperature": 1.0,
+    "gemini_include_thoughts": false
+  }
+}
+```
+
+若只想確認設定而不發送請求，可加上 `--dry-run`。此 script 會依 model family 自動選擇 `thinking_level` 或 `thinking_budget`，並在 Gemini 2.5 缺少 `--thinking-budget` 時直接報錯，避免送出不明確設定。
+
 ---
 
 ## API 介接文件與整合範例

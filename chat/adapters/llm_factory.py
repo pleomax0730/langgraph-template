@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from ..config import settings
@@ -53,7 +54,6 @@ def _load_google_credentials(
 
 
 def _build_google_llm_kwargs(
-    model_name: str,
     env: Mapping[str, str] | None = None,
     credentials_loader: Callable[..., Any] | None = None,
 ) -> dict[str, Any]:
@@ -63,7 +63,6 @@ def _build_google_llm_kwargs(
     )
 
     google_kwargs: dict[str, Any] = {
-        "model": model_name,
         "streaming": True,
         "vertexai": True,
         "location": google_settings.location,
@@ -77,16 +76,15 @@ def _build_google_llm_kwargs(
 
 
 def _build_google_llm(model_name: str) -> BaseChatModel:
-    from langchain_google_genai import ChatGoogleGenerativeAI
-
-    return ChatGoogleGenerativeAI(**_build_google_llm_kwargs(model_name))
+    return init_chat_model(
+        f"google_genai:{model_name}",
+        **_build_google_llm_kwargs(),
+    )
 
 
 def _build_openai_llm(model_name: str) -> BaseChatModel:
-    from langchain_openai import ChatOpenAI
-
-    return ChatOpenAI(
-        model_name=model_name,
+    return init_chat_model(
+        f"openai:{model_name}",
         use_responses_api=True,
         output_version="responses/v1",
         reasoning={"effort": "high", "summary": "detailed"},
