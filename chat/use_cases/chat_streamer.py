@@ -100,9 +100,17 @@ def _build_input_messages(
     return input_messages
 
 
+def _state_value(state: Any, key: str, default: Any = None) -> Any:
+    if isinstance(state, dict):
+        return state.get(key, default)
+    if hasattr(state, "value"):
+        return _state_value(state.value, key, default)
+    return getattr(state, key, default)
+
+
 async def stream_execute(
     user_input: str, chat_mode: str, chat_history_dicts: list | None = None
-) -> AsyncGenerator[dict[str, Any], None]:
+) -> AsyncGenerator[dict[str, Any]]:
     app = GLOBAL_APP
     input_messages = _build_input_messages(user_input, chat_history_dicts)
     handler = StreamEventHandler()
@@ -140,8 +148,8 @@ async def invoke_execute(
             version=settings.STREAM_VERSION,
         )
         return {
-            "response": final_state.get("final_response"),
-            "usage": final_state.get("final_usage", {}),
+            "response": _state_value(final_state, "final_response"),
+            "usage": _state_value(final_state, "final_usage", {}),
         }
     except Exception as exc:
         logger.exception("Invoke execution failed")

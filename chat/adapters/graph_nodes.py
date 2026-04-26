@@ -4,9 +4,18 @@ from langgraph.config import get_stream_writer
 from langgraph.graph import END
 from langgraph.runtime import Runtime
 
-from ..domain import ChatContext, ChatWorkflowState, usage_to_dict
+from ..config import settings
+from ..domain import ChatContext, ChatWorkflowState, extract_text_blocks, usage_to_dict
 from .llm_factory import MODEL
 from .tools_registry import LANGCHAIN_TOOLS, TOOL_CATALOG, _execute_tool_call
+
+
+def _bind_tools_for_provider(model, tools: list, provider: str):
+    if not tools:
+        return model
+    if provider.lower() == "openai":
+        return model.bind_tools(tools, parallel_tool_calls=False)
+    return model.bind_tools(tools)
 
 
 async def agent_node(
@@ -14,14 +23,15 @@ async def agent_node(
 ):
     mode = runtime.context.chat_mode
     current_tools = list(LANGCHAIN_TOOLS) if mode == "plan" else []
-    llm_with_tools = (
-        MODEL.bind_tools(current_tools, parallel_tool_calls=False)
-        if current_tools
-        else MODEL
+    llm_with_tools = _bind_tools_for_provider(
+        MODEL,
+        current_tools,
+        settings.MODEL_PROVIDER,
     )
     final_message = await llm_with_tools.ainvoke(state.messages, config)
+    text_blocks = extract_text_blocks(final_message)
     final_response = (
-        str(final_message.content) if not final_message.tool_calls else None
+        "".join(text_blocks) if text_blocks and not final_message.tool_calls else None
     )
     return {
         "messages": state.messages + [final_message],
